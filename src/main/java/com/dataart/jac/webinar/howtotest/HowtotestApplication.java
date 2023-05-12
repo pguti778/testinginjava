@@ -18,7 +18,7 @@ public class HowtotestApplication {
 	}
 
 	@GetMapping("/do-a-test")
-	public String launchDarklyTest() {
+	public String encrypt() {
 		return "This is a test";
 	}
 

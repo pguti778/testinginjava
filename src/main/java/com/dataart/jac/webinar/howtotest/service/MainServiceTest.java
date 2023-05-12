@@ -1,7 +1,7 @@
 package com.dataart.jac.webinar.howtotest.service;
 
 
-import org.junit.Test;
+//import org.junit.Test;
 
 /**
  * Don't place Test in main sources.
