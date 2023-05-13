@@ -1,6 +1,4 @@
-# How to test - in  Java
-
-# Testing in Java part 1
+# Testing in Java
 
 In this article, I will try to cover all the basics for building tests in our Java projects. I will mainly use Maven, but Gradle has the same functionality and support all of the concepts detailed here.  
 
@@ -33,7 +31,8 @@ false
 false
 0.20
 ```
-> *TIP*: The code above can be run them in an online editor. Find one that you can select JDK version.
+
+> The code above can be run them in an online editor. Find one that you can select JDK version.
 
 # JUnit
 
@@ -41,7 +40,7 @@ What is JUnit? It's a framework that provides the foundations -the core- for cre
 
 > It was written by Kent Beck and Erich Gamma during a flight from Zurich to Atlanta, based on the SUnit (Smalltalk unit testing framework)
  
-Current version is JUnit5, it requires Java8+ to run. But it can run Junit4 tests. Pay attention to the JDK required by your project: Java is more than 20 years old and many-many lines of code were written. So it might be the case, that in your specific project, it's needed to maintain some legacy code.  This guide is for Junit 5, but JUnit4 can run most of the features shown here.
+Current version is JUnit5, it requires Java8+ to run. But it can run Junit4 tests. Pay attention to the JDK required by your project: Java is more than 20 years old and many-many lines of code were written. So it might be the case, that maintaining legacy code is the project objective. This guide is for Junit 5, but JUnit4 can run most of the features shown here.
 
 
 ## Get Started: Dependencies
@@ -69,6 +68,8 @@ This is the dependency for your project to run Junit tests.
 </dependency>
 ```
 
+> The BOM actually inserts the referenced POM into your project's POM. 
+
 Again for maintainers, you can see if your project contains it by running the following command:
 
 ```bash
@@ -84,9 +85,9 @@ mvn  dependency:tree | Select-String -NotMatch junit
 
 ## Structure
 
-Luckly for us in most Java projects, we have a good [project structure](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html) - I think it was originated by Maven, but I can't tell for sure.
+Luckily for us in most Java projects, we have a good [project structure](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html) - I think it was originated by Maven, but I can't tell for sure.
 
-This is how it's structured:
+For our study, we will focus on the following folders:
 
 ### Main application code
 ```
@@ -102,7 +103,7 @@ src/test/resources
 src/test/filters
 ```
 
-I said "Ideally" because it's not "mandatory" to have testing code outside your main application code. Thus, you might forget 😮 that you've dome some `main` inside a class to have a quick test. 
+I said "Ideally" because it's not "mandatory" to have testing code outside your main application code. Thus, you might forget 😮 that you've done some `main` inside a class to have a quick test. 
 
 > ## Don't put testing code inside your main sources. 😵
 
@@ -110,7 +111,7 @@ I said "Ideally" because it's not "mandatory" to have testing code outside your 
 
 It's the default Maven plugin that executes the `test` goal. 
 
-As it says in the doc https://junit.org/junit5/docs/current/user-guide/#running-tests-build-maven-filter-test-class-names, by default the Maven Surefire Plugin will scan for test classes whose fully qualified names match the following patterns.
+As it says in the [doc](https://junit.org/junit5/docs/current/user-guide/#running-tests-build-maven-filter-test-class-names), by default the Maven Surefire Plugin will scan for test classes whose fully qualified names match the following patterns.
 
 ```
 **/Test*.java
@@ -119,11 +120,11 @@ As it says in the doc https://junit.org/junit5/docs/current/user-guide/#running-
 **/*TestCase.java
 ```
 
-Pay attention to the `**` at the beginning: it means that Test classes can be anywhere !! 😮 In this project, you can look at the MainServiceTest
+Pay attention to the `**` at the beginning: it means that Test classes can be anywhere !! 😮 In this project, you can look at the MainServiceTest.
 
 ## Writing tests
 
-Every method with the `@Test` annotation under `src/test/java` (*) directory is executed as a test by maven and considers as such by your IDE.  
+Every method with the `@Test` annotation under `src/test/java` (*) directory is executed as a test by maven and is consider as such by your IDE.  
 
 > (*) As said before, place your tests in `src/test/java`
 
@@ -155,8 +156,6 @@ This code is posted in this project.
 
 Consider the following "encryption" method (very weak, don't use for real).
 
-## EncryptService
-
 ```java
 public class EncryptService {
 
@@ -172,6 +171,7 @@ public class EncryptService {
 
 }
 ```
+
 Once your test is created with you favourite IDE, it will look like this after writing some tests:
 
 ```java
@@ -199,8 +199,6 @@ class EncryptServiceTest {
     String password = "mypassword";
     assertNotEquals(this.encryptService.encryptPassword(password), password);
   }
-
-
 }
 ```
 
@@ -209,6 +207,15 @@ class EncryptServiceTest {
 ## How is it tested ??
 
 You can run your tests directly from your IDE. But due to the Maven lifecycle, the Surefire plugin is triggered by the `test` lifecycle and will execute all the test as described in the section [Maven test: Surefire Plugin](#surefire)
+
+## How do you finally know that your result is what you expected ? Assert
+
+In order to evaluate that our code was executed properly, we have to compare the result of the code being executed to a desired result. 
+
+We do that in JUnit using [Assertions](https://junit.org/junit5/docs/current/user-guide/#writing-tests-assertions)
+
+The complete list could be found here: 
+https://junit.org/junit5/docs/current/api/org.junit.jupiter.api/org/junit/jupiter/api/Assertions.html
 
 ## Useful Annotations
 
@@ -219,22 +226,22 @@ You can run your tests directly from your IDE. But due to the Maven lifecycle, t
 - @Tag: to filter test execution like in `mvn -Dgroups="integration, fast, feature-168"`  or `mvn -DexcludedGroups="slow"` (taken from https://mkyong.com/junit5/junit-5-tagging-and-filtering-tag-examples/)
 - @ParameterizedTest, @RepeatedTest, @Timeout
 
-## Junit 4 vs 5: Annotations
+### Junit 4 vs 5: Annotations
 
 Yes, they've changed the annonations names. Here the cheatsheet:
 
-| JUnit4 | Junit5        |
-|--------|---------------|
-| @RunWith | @ExtendWith   |
-| @Before | @BeforeEach   |
-| @After | @AfterEach    |
-| @BeforeClass | @BeforeAll    |
-| @AfterClass | @AfterAll     |
-| @Ignore | @Disabled     |
-| @Category | @Tag          |
-|  @Rule<br/>@ClassRule | 😵            |
+| JUnit4 | Junit5 |
+|--------|--------|
+| @RunWith | @ExtendWith |
+| @Before | @BeforeEach |
+| @After | @AfterEach |
+| @BeforeClass | @BeforeAll |
+| @AfterClass | @AfterAll |
+| @Ignore | @Disabled |
+| @Category | @Tag   |
+|  @Rule<br/>@ClassRule | 😵     |
 
-## Junit 5 new Annotations
+### Junit 5 new Annotations
 
 - @DisplayName
 - @ParameterizedTest
@@ -243,10 +250,6 @@ Yes, they've changed the annonations names. Here the cheatsheet:
 - @NullSource
 - @EmptySource
 
-## Assertiongs
-
-There is a good list of assertions and you can take a look at them in the following link: 
-https://junit.org/junit5/docs/current/api/org.junit.jupiter.api/org/junit/jupiter/api/Assertions.html
 
 # Mockito (jMock, EasyMock)
 
