@@ -1,9 +1,12 @@
-package com.dataart.jac.webinar.howtotest.service;
+package com.dataart.jac.webinar.howtotest.service.donts;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import org.springframework.stereotype.Service;
 
+/**
+ * You can also test in MAINs, but there are several cons and should be avoided.
+ */
 @Service
 public class MainService {
 
@@ -18,7 +21,7 @@ public class MainService {
 
     System.out.println(b1.equals(b2));
     System.out.println(b1.equals(b3));
-    System.out.println(b2.setScale(2, RoundingMode.HALF_DOWN));
+    System.out.println(b1.equals(b3.setScale(2, RoundingMode.HALF_DOWN)));
   }
 
 }

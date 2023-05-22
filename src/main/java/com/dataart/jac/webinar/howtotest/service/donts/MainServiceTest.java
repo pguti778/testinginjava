@@ -1,4 +1,4 @@
-package com.dataart.jac.webinar.howtotest.service;
+package com.dataart.jac.webinar.howtotest.service.donts;
 
 
 //import org.junit.Test;

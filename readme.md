@@ -1,6 +1,7 @@
 # Testing in Java
 
-In this article, I will try to cover all the basics for building tests in our Java projects. I will mainly use Maven, but Gradle has the same functionality and support all of the concepts detailed here.  
+In this article, I will try to cover all the basics for building tests in our Java projects. I will mainly use Maven, but Gradle has the same functionality and support all the concepts detailed here.  
+
 
 # Main
 
@@ -18,7 +19,7 @@ public static void main(String[] args) {
 
     System.out.println(b1.equals(b2));
     System.out.println(b1.equals(b3));
-    System.out.println(b2.setScale(2, RoundingMode.HALF_DOWN));
+    System.out.println(b1.equals(b3.setScale(2, RoundingMode.HALF_DOWN)));
     }
 ```
 
@@ -29,10 +30,10 @@ Output:
 0.20000000298023224
 false
 false
-0.20
+false
 ```
 
-> The code above can be run them in an online editor. Find one that you can select JDK version.
+> The code above can be run them in any online editor. Find one that you can select JDK version.
 
 # JUnit
 
@@ -40,7 +41,7 @@ What is JUnit? It's a framework that provides the foundations -the core- for cre
 
 > It was written by Kent Beck and Erich Gamma during a flight from Zurich to Atlanta, based on the SUnit (Smalltalk unit testing framework)
  
-Current version is JUnit5, it requires Java8+ to run. But it can run Junit4 tests. Pay attention to the JDK required by your project: Java is more than 20 years old and many-many lines of code were written. So it might be the case, that maintaining legacy code is the project objective. This guide is for Junit 5, but JUnit4 can run most of the features shown here.
+Current version is JUnit5, it requires Java8+ to run. But it can run Junit4 tests. Pay attention to the JDK required by your project: Java is more than 20 years old and many-many lines of code were written. So it might be the case, that maintaining legacy code is the project objective. This guide is for Junit 5, but JUnit4 can run most of the features shown here, and differences are a few somewhere below this article. 
 
 
 ## Get Started: Dependencies
@@ -83,11 +84,13 @@ mvn  dependency:tree | findstr /i junit
 mvn  dependency:tree | Select-String -NotMatch junit
 ```
 
+You can use the `mvn  dependency:tree --debug` if some missing dependency makes the execution fail. 
+
 ## Structure
 
-Luckily for us in most Java projects, we have a good [project structure](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html) - I think it was originated by Maven, but I can't tell for sure.
+Luckily for us in most Java projects, we have a good [project structure](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html) - I think it was originally proposed by Maven, but I am not able to confirm.
 
-For our study, we will focus on the following folders:
+It is very probably that you would find this structure in your maintenance project.
 
 ### Main application code
 ```
@@ -103,13 +106,14 @@ src/test/resources
 src/test/filters
 ```
 
-I said "Ideally" because it's not "mandatory" to have testing code outside your main application code. Thus, you might forget 😮 that you've done some `main` inside a class to have a quick test. 
+This is the ideal project structure. It is not mandatory to have testing code outside your main application code. Thus, you might forget 😮 that you've done some `main` inside a class to have a quick test. 
 
-> ## Don't put testing code inside your main sources. 😵
+> ### Don't put Testing code inside your main sources. 😵
 
 ## <a name="surefire"></a> Maven test: Surefire Plugin
 
-It's the default Maven plugin that executes the `test` goal. 
+Ok, we all do the `mvn clean install`, but inside the install goal several things happen, one of them is the `test` goal. Maven execute the `test` goal by running the *Surefire* plugin.
+
 
 As it says in the [doc](https://junit.org/junit5/docs/current/user-guide/#running-tests-build-maven-filter-test-class-names), by default the Maven Surefire Plugin will scan for test classes whose fully qualified names match the following patterns.
 
@@ -120,13 +124,18 @@ As it says in the [doc](https://junit.org/junit5/docs/current/user-guide/#runnin
 **/*TestCase.java
 ```
 
-Pay attention to the `**` at the beginning: it means that Test classes can be anywhere !! 😮 In this project, you can look at the MainServiceTest.
+Pay attention to the `**` at the beginning: it means that `*Test` classes can be anywhere !! 😮 In this project, you can look at the MainServiceTest. This is reason for, let me repeat:
+
+> ### Don't put Testing code inside your main sources. 😵
+
+## Maven test: Surefire Plugin: The importance 
+
+Having the Surefire plugin being executes every time on the Maven life cycle is very important for ***Continuos Integration*** : if a test fails, something is wrong with the code produced and it must not be pushed into a productive release. Really the main idea behind the continues is this: to run automated tests with the latest code and if something is failing, flag it.  
 
 ## Writing tests
 
-Every method with the `@Test` annotation under `src/test/java` (*) directory is executed as a test by maven and is consider as such by your IDE.  
+Every method with the `@Test` annotation under `src/test/java` 👍 directory is executed as a test by maven and is considered as such by your IDE.  
 
-> (*) As said before, place your tests in `src/test/java`
 
 This is how a test looks like:
 
@@ -172,7 +181,7 @@ public class EncryptService {
 }
 ```
 
-Once your test is created with you favourite IDE, it will look like this after writing some tests:
+Once your test is created with you favourite IDE, it will look like this:
 
 ```java
 class EncryptServiceTest {
@@ -199,36 +208,43 @@ class EncryptServiceTest {
     String password = "mypassword";
     assertNotEquals(this.encryptService.encryptPassword(password), password);
   }
+
+  public void nonTestMethod() {
+    // This is not a test method, because it does not have the @Test. 
+  }
 }
 ```
+Method naming is a subject on its own, I've found this article interesting https://medium.com/@stefanovskyi/unit-test-naming-conventions-dd9208eadbea for naming of methods. Very good analysis. I'm following the first suggestion by the author.   
 
-> For a reference on annotations you can look [here](https://junit.org/junit5/docs/current/user-guide/#writing-tests-annotations)
+> For a reference on JUnit5 annotations you can look [here](https://junit.org/junit5/docs/current/user-guide/#writing-tests-annotations)
 
-## How is it tested ??
+## How is the test executed ??
 
-You can run your tests directly from your IDE. But due to the Maven lifecycle, the Surefire plugin is triggered by the `test` lifecycle and will execute all the test as described in the section [Maven test: Surefire Plugin](#surefire)
+You can run your tests directly from your IDE. But inside the Maven lifecycle, the Surefire plugin is triggered by the `test` goal, and it will execute all the tests as described in the section [Maven test: Surefire Plugin](#surefire)
 
-## How do you finally know that your result is what you expected ? Assert
+## How do you finally know that your result is what you expected? *Assert*
 
-In order to evaluate that our code was executed properly, we have to compare the result of the code being executed to a desired result. 
+In order to evaluate that our code was executed properly, we have to compare the result of the code being executed to the desired result. 
 
-We do that in JUnit using [Assertions](https://junit.org/junit5/docs/current/user-guide/#writing-tests-assertions)
-
-The complete list could be found here: 
+In JUnit you've got the [Asserts](https://junit.org/junit5/docs/current/user-guide/#writing-tests-assertions). The complete list could be found here: 
 https://junit.org/junit5/docs/current/api/org.junit.jupiter.api/org/junit/jupiter/api/Assertions.html
 
 ## Useful Annotations
 
+These are some everyday used in Junit:
+
 - @Test: Main testing annotation
-- @DisplayName: descriptive test
+- @DisplayName: descriptive test 
 - @BeforeAll, BeforeEach, AfterAll, AfterEach: method to be execute before or after each or all
 - @Disable: Force to disable a test
+
+And here some I've found interesting: 
 - @Tag: to filter test execution like in `mvn -Dgroups="integration, fast, feature-168"`  or `mvn -DexcludedGroups="slow"` (taken from https://mkyong.com/junit5/junit-5-tagging-and-filtering-tag-examples/)
 - @ParameterizedTest, @RepeatedTest, @Timeout
 
 ### Junit 4 vs 5: Annotations
 
-Yes, they've changed the annonations names. Here the cheatsheet:
+Yes, they've changed the annotations names. Here the cheatsheet:
 
 | JUnit4 | Junit5 |
 |--------|--------|
@@ -239,7 +255,7 @@ Yes, they've changed the annonations names. Here the cheatsheet:
 | @AfterClass | @AfterAll |
 | @Ignore | @Disabled |
 | @Category | @Tag   |
-|  @Rule<br/>@ClassRule | 😵     |
+| @Rule<br/>@ClassRule | 😵     |
 
 ### Junit 5 new Annotations
 
@@ -250,20 +266,17 @@ Yes, they've changed the annonations names. Here the cheatsheet:
 - @NullSource
 - @EmptySource
 
-
 # Mockito (jMock, EasyMock)
 
-As explained before (and also in my previous Webinar), Unit testing should be test in the most ***isolation*** possible. How do I test my code in isolation if it has dependencies with other services/classes/objects ?? 
+As explained before (and also in my previous Webinar), Unit testing should be executed in the most ***isolation*** possible. How do I test my code in isolation if my code has dependencies with other services/classes/objects/external entities ?? 
 
-That's where Mocking comes into picture: create facade objects and provide them the behavior we want for our test. So, we have leveraging libraries and framework that run over JUnit that let us mimic the responses we want for our tests. 
+That's where Mocking comes into picture: create facade objects and provide them the behavior we want for our test. So, there are leveraging libraries and frameworks that run over JUnit that let us mimic the responses we want for our tests. Mockito, jMock and EasyMock are the most used.
 
 ## Mocking
 
-What we want to mock is not the service we want to test, but whatever its dependencies are. So considering the following service. 
+What we want to mock is not the service we want to test, but the dependencies it has. So considering the following service. 
 
 ```java
-@Component
-@AllArgsConstructor
 public class ManglingService {
 
   static final String SALT = "SALTKEY";
@@ -272,17 +285,138 @@ public class ManglingService {
   RemoteMD5Client remoteMD5Client;
 
   public String saltedMD5(String value) {
-    return remoteMD5Client.md5sum(value + SALT);
+    if(value != null && !("".equals(value))) {
+      return remoteMD5Client.md5sum(value + SALT);
+    } else {
+      return remoteMD5Client.md5sum(value);
+    }
   }
 
 }
 ```
 
-The `RemoteMD5Client` is the dependency we want to mock. 
+The `RemoteMD5Client` is the dependency we want to mock. So the code will be like this:
+
+```java
+@ExtendWith(MockitoExtension.class)
+class ManglingServiceTest {
+
+// Initialize mock - The old way
+//  public ManglingServiceTest() {
+//    MockitoAnnotations.openMocks(this);
+//  }
+
+  @Test
+  @DisplayName("Testing and mocking a service")
+  public void testEncryptSimple() {
+    // Mock instance
+    RemoteMD5Client remoteMD5Client = Mockito.mock(RemoteMD5Client.class);
+
+    // Conditions -> Arrange - Given  (Mockito can be statically imported)
+    Mockito.when(remoteMD5Client.md5sum("simple")).thenReturn("empty");  
+
+    // Real service we want to test
+    ManglingService manglingService = new ManglingService(remoteMD5Client);
+
+    // The actual Execution ->  Act - When
+    String result = manglingService.saltedMD5("simple");
+
+    // Evaluate the result : Assert - Then
+    assertEquals(result, "empty" + ManglingService.SALT);
+  }
+}
+```
+
+Some notes of the code above:
+
+- `@ExtendWith` is a way to tell JUnit5 what other extension should it use. In this case, only `Mockito`
+- our service to test is not an instance variable, but a local to the method. 
+
+##  Arrange/Act/Assert vs GWT: Given/When/Then
+
+They both have the same principle: to prepare conditions, to execute the code and to evaluate the results. The first is commonly used for Unit testing and TDD, and the later is more frequent in Behavior Driven Development (BDD) context. 
+
+# A word on Processes & Paradigms
+
+Although, these topics are not part of the scope of this article, let's take a "sentence explanatory" approach.
+
+##  Test Driven Development (TDD)
+
+TDD is a software process that instead of start by write code based on a requirement, you start writing test cases. So, the code produced should make pass all the tests. This is an approach or a process instead of a tool on its own. 
+
+##  Behavior Driven Development (BDD)
+
+It's uses the Given-When-Then principle to describe User Stories or Scenarios at high level. BDD more thought for Use Cases and higher level definitions for test cases. It is kind of thought for Product Owner and Business users. It has its own language and it not specific for Java. 
+
+> They are not mutually exclusive.
+
+# Mock vs Spy
+
+A mock object is a full fake object that you have to define all its behaviors. If in our case:
+
+```java
+// Mock instance
+@Mock
+RemoteMD5Client remoteMD5Client;
+
+@Test
+@DisplayName("Testing and mocking a service")
+public void testEncryptSimple() {
+    // Mock instance : Mock Objects can also be create using this Sintax. 
+    //RemoteMD5Client remoteMD5Client = Mockito.mock(RemoteMD5Client.class);
+
+    // Conditions -> Arrange - Given  (Mockito can be statically imported)
+    Mockito.when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
+
+    // Real service we want to test
+    ManglingService manglingService = new ManglingService(remoteMD5Client);
+
+    // The actual Execution ->  Act - When
+    String result = manglingService.saltedMD5("complex");
+
+    // Evaluate the result : Assert - Then
+    assertEquals(result, "empty" + ManglingService.SALT);
+}
+```
+ 
+This will fail, because the mock will only response based on the **Arrange** section we have set. We set for `simple`, but we test for `complex`.
+
+Some notes of the code above:
+- The `@Mock` annotation will create an instance mock variable. 
+
+## Spy
+
+Instead of a complete fake object, with Spy you can modify the behavior of an existing object instance. 
+
+```java
+  @Spy
+  RemoteMD5Client remoteMD5Client;
+
+  @Test
+  @DisplayName("Testing and mocking a service")
+  public void testEncryptSpy() {
+    // Conditions -> Arrange - Given
+    Mockito.when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
+
+    // Real service we want to test
+    ManglingService manglingService = new ManglingService(remoteMD5Client);
+
+    // The actual Execution ->  Act - When
+    String result = manglingService.saltedMD5("simple");
+
+    // Evaluate the result : Then - Assert
+    assertEquals(result, "SIMPLE" + ManglingService.SALT);
+  }
+```
+
+The main difference is that for arguments other than `simple`, the `remoteMD5Client` will code it's original backing code. 
+
+
 
 
 
 # PowerMock
+
 
 
 
@@ -330,3 +464,9 @@ You'll talk about Integration Tests later.
 
 
 # JaCoCo
+
+
+--- 
+# References
+
+https://methodpoet.com/unit-testing-best-practices/

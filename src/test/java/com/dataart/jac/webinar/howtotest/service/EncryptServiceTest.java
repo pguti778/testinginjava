@@ -35,4 +35,8 @@ class EncryptServiceTest {
     assertNotEquals(this.encryptService.encryptPassword(password), password);
   }
 
+  public void nonTestMethod() {
+    // This is not a test method.
+  }
+
 }
