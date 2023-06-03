@@ -17,7 +17,7 @@ public class ManglingService {
     if(value != null && !("".equals(value))) {
       return remoteMD5Client.md5sum(value + SALT);
     } else {
-      return remoteMD5Client.md5sum(value);
+      return remoteMD5Client.md5sum("DEFAULT"  + SALT );
     }
   }
 

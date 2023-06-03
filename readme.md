@@ -368,6 +368,9 @@ public void testEncryptSimple() {
     // Conditions -> Arrange - Given  (Mockito can be statically imported)
     Mockito.when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
 
+    // call the real method
+    Mockito.when(remoteMD5Client.md5sum("complex")).thenCallRealMethod();
+
     // Real service we want to test
     ManglingService manglingService = new ManglingService(remoteMD5Client);
 
@@ -379,14 +382,21 @@ public void testEncryptSimple() {
 }
 ```
  
-This will fail, because the mock will only response based on the **Arrange** section we have set. We set for `simple`, but we test for `complex`.
+This will fail, because the mock will only give response based on the **Arrange** section we have set. And, we have set for `simple`, but we test for `complex`.
 
 Some notes of the code above:
-- The `@Mock` annotation will create an instance mock variable. 
+- The `@Mock` annotation will create an instance mock variable.
+- If return is not configured for the method we want to execute, it will return `null`. 
+- Mock will never invoke the real method. You have to explicitly define it to `thenCallRealMethod`
+- With the code above, you'll get a `Strict stubbing argument mismatch.`, meaning that you have to define the cases. The code should be 
+```java 
+    lenient().when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
+``` 
+- Mode details can be found [here](https://www.baeldung.com/mockito-unnecessary-stubbing-exception) 
 
 ## Spy
 
-Instead of a complete fake object, with Spy you can modify the behavior of an existing object instance. 
+Instead of a complete fake object, with Spy you can modify the behavior of an existing object instance for special conditions. If the method does not have a condition, it will execute the original class code. 
 
 ```java
   @Spy
@@ -411,8 +421,11 @@ Instead of a complete fake object, with Spy you can modify the behavior of an ex
 
 The main difference is that for arguments other than `simple`, the `remoteMD5Client` will code it's original backing code. 
 
-
-
+Some notes of the code above:
+- The `@Spy` annotation will spy on the injected object. Without annotation it will be like:
+```java
+RemoteMD5Client remoteMD5ClientSpied = Mockito.spy(new RemoteMD5Client()); 
+```
 
 
 # PowerMock

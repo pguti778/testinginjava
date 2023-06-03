@@ -3,6 +3,7 @@ package com.dataart.jac.webinar.howtotest.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 
 import com.dataart.jac.webinar.howtotest.gateway.RemoteMD5Client;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,10 +33,10 @@ class ManglingServiceTest {
     RemoteMD5Client remoteMD5Client = Mockito.mock(RemoteMD5Client.class);
 
     // Conditions -> Arrange - Given
-    Mockito.when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
+    lenient().when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
 
-    //
-    Mockito.when(remoteMD5Client.md5sum("complex")).thenCallRealMethod();
+    // call the real method
+    //Mockito.when(remoteMD5Client.md5sum("complex")).thenCallRealMethod();
 
     // Real service we want to test
     ManglingService manglingService = new ManglingService(remoteMD5Client);
