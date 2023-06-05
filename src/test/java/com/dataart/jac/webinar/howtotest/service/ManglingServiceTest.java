@@ -6,10 +6,12 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 
 import com.dataart.jac.webinar.howtotest.gateway.RemoteMD5Client;
+import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -25,6 +27,9 @@ class ManglingServiceTest {
 //  }
   @Mock
   RemoteMD5Client remoteMD5ClientInstance;
+
+  @InjectMocks
+  ManglingService manglingServiceMockInjected;
 
   @Test
   @DisplayName("Testing and mocking a service")
@@ -45,7 +50,7 @@ class ManglingServiceTest {
     String result = manglingService.saltedMD5("simple");
 
     // Evaluate the result : Then - Assert
-    assertEquals(result, "SIMPLE" + ManglingService.SALT);
+    assertEquals("SIMPLE" + ManglingService.SALT, result);
   }
 
   @Spy
@@ -64,9 +69,30 @@ class ManglingServiceTest {
     String result = manglingService.saltedMD5("simple");
 
     // Evaluate the result : Then - Assert
-    assertEquals(result, "SIMPLE" + ManglingService.SALT);
+    assertEquals("SIMPLE" + ManglingService.SALT, result);
   }
 
+  @Test
+  @DisplayName("Test Mocked objects")
+  public void testMockedInjectedObject() {
+    // Conditions -> Arrange - Given
+    Mockito.when(this.remoteMD5Client.md5sum("simple" + ManglingService.SALT)).thenReturn("empty");
+
+    // The actual Execution ->  Act - When
+    String result = this.manglingServiceMockInjected.saltedMD5("simple");
+
+    // Evaluate the result : Then - Assert
+    assertEquals("empty", result);
+  }
+
+  @Test
+  @DisplayName("Test Exception")
+  public void testException() {
+    Exception exception = assertThrows(Exception.class, () -> { Objects.requireNonNull(null); } );
+    //exception.printStackTrace();
+    System.out.println(exception.getMessage());
+    assertNotNull(exception);
+  }
 
 
   public void testEncryptNull() {

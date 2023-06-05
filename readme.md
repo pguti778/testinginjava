@@ -148,7 +148,7 @@ class MyFirstJUnitJupiterTests {
 
   @Test
   public void addition() {
-    assertEquals(2, Integer.parseInt("1")+1);
+    assertEquals(Integer.parseInt("1")+1, 2);
   }
 
 }
@@ -199,14 +199,14 @@ class EncryptServiceTest {
   @DisplayName("Positive test")
   void testEncryptPositive() {
     String password = "mypassword";
-    assertEquals(this.encryptService.encryptPassword(password), password+ EncryptService.KEY);
+    assertEquals(password+ EncryptService.KEY, this.encryptService.encryptPassword(password));
   }
 
   @Test
   @DisplayName("Negative test")
   void testEncryptNegative() {
     String password = "mypassword";
-    assertNotEquals(this.encryptService.encryptPassword(password), password);
+    assertNotEquals(password, this.encryptService.encryptPassword(password));
   }
 
   public void nonTestMethod() {
@@ -266,11 +266,38 @@ Yes, they've changed the annotations names. Here the cheatsheet:
 - @NullSource
 - @EmptySource
 
+
+## Exceptions
+
+```java
+@Test
+@DisplayName("Test Exception")
+public void testException() {
+    Exception exception = assertThrows(Exception.class, () -> { Objects.requireNonNull(null); } );
+    //exception.printStackTrace();
+    System.out.println(exception.getMessage());
+    assertNotNull(exception);
+    }
+```
+
+
 # Mockito (jMock, EasyMock)
 
 As explained before (and also in my previous Webinar), Unit testing should be executed in the most ***isolation*** possible. How do I test my code in isolation if my code has dependencies with other services/classes/objects/external entities ?? 
 
 That's where Mocking comes into picture: create facade objects and provide them the behavior we want for our test. So, there are leveraging libraries and frameworks that run over JUnit that let us mimic the responses we want for our tests. Mockito, jMock and EasyMock are the most used.
+
+### Maven dependency
+
+Check de latest in https://github.com/mockito/mockito/releases
+
+```xml
+<dependency>
+    <groupId>org.mockito</groupId>
+    <artifactId>mockito-core</artifactId>
+    <version>5.3.1</version>
+</dependency>
+```
 
 ## Mocking
 
@@ -322,7 +349,7 @@ class ManglingServiceTest {
     String result = manglingService.saltedMD5("simple");
 
     // Evaluate the result : Assert - Then
-    assertEquals(result, "empty" + ManglingService.SALT);
+    assertEquals("empty" + ManglingService.SALT, result);
   }
 }
 ```
@@ -378,11 +405,13 @@ public void testEncryptSimple() {
     String result = manglingService.saltedMD5("complex");
 
     // Evaluate the result : Assert - Then
-    assertEquals(result, "empty" + ManglingService.SALT);
+    assertEquals("empty" + ManglingService.SALT, result);
 }
 ```
  
-This will fail, because the mock will only give response based on the **Arrange** section we have set. And, we have set for `simple`, but we test for `complex`.
+This previous code will fail, because the mock will only give response based on the **Arrange** section we have set. And, we have set for `simple`, but we test for `complex`.
+
+> ## Make sure you test your tests 🪲🔫
 
 Some notes of the code above:
 - The `@Mock` annotation will create an instance mock variable.
@@ -415,7 +444,7 @@ Instead of a complete fake object, with Spy you can modify the behavior of an ex
     String result = manglingService.saltedMD5("simple");
 
     // Evaluate the result : Then - Assert
-    assertEquals(result, "SIMPLE" + ManglingService.SALT);
+    assertEquals("SIMPLE" + ManglingService.SALT,result) ;
   }
 ```
 
@@ -427,13 +456,176 @@ Some notes of the code above:
 RemoteMD5Client remoteMD5ClientSpied = Mockito.spy(new RemoteMD5Client()); 
 ```
 
+## InjectMocks
+
+In order not to have to call constructor manually for the class we want to test, the `@InjectMocks` annotation will find any mock object in our test and call the constructor with it. 
+
+```java
+    @Mock
+    RemoteMD5Client remoteMD5ClientInstance;
+    
+    @InjectMocks
+    ManglingService manglingServiceMockInjected;
+    
+    @Test
+    @DisplayName("Test Mocked objects")
+    public void testMockedInjectedObject() {
+        // Conditions -> Arrange - Given
+        Mockito.when(this.remoteMD5Client.md5sum("simple" + ManglingService.SALT)).thenReturn("empty");
+        
+        // The actual Execution ->  Act - When
+        String result = this.manglingServiceMockInjected.saltedMD5("simple");
+        
+        // Evaluate the result : Then - Assert
+        assertEquals("empty", result);
+    }
+```
+
+No need to have a Dependency Injection engine running beneth our code: Mockito will do for us. 
+
+## Mocking Statics
+
+Static method are controversial, but they are there and they exist. Again, Java is 20+ years old and many hands has written code on it. So we will find several situations like this.
+
+### Setting up
+
+To let Mockito be able to mock static methods, you have to create a file into the `src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker` directory of your project with a single line :
+
+```
+mock-maker-inline
+```
+
+More details on https://github.com/mockito/mockito/wiki/What%27s-new-in-Mockito-2#mock-the-unmockable-opt-in-mocking-of-final-classesmethods. They say that this comes with a performance cost, but I can't confirm.
+
+So going to the test, our code will be like:
+
+```java
+public class CommonUtils {
+
+  static String EmptyOrRandom(String value) {
+    if("".equals(Objects.toString(value, ""))) {
+      return Long.toString(Random.from(RandomGenerator.getDefault()).nextLong());
+    }
+    return value;
+  }
+}
+```
+
+And the test be like:
+
+```java
+@ExtendWith(MockitoExtension.class)
+class CommonUtilsTest {
+
+    @Test
+    @DisplayName("To test Static Method")
+    public void testStatic() {
+        assertNotEquals("", CommonUtils.EmptyOrRandom(""));
+        assertEquals("something", CommonUtils.EmptyOrRandom("something"));
+        
+        try (MockedStatic<CommonUtils> utilities = Mockito.mockStatic(CommonUtils.class)) {
+          utilities.when(() -> CommonUtils.EmptyOrRandom("value")).thenReturn("othervalue");
+          assertEquals("othervalue", CommonUtils.EmptyOrRandom("value"));
+        }
+    }
+}
+```
 
 # PowerMock
 
+Taken from https://github.com/powermock/powermock 
+
+> *PowerMock is a framework that extends other mock libraries such as EasyMock with more powerful capabilities.* 
+>
+> *PowerMock uses a custom classloader and bytecode manipulation to enable mocking of static methods, constructors, final classes and methods, private methods, removal of static initializers and more.*
 
 
+## Some notes about PowerMock
+> It's not a daily-maintained library. Be careful when using. Last commit was done 4 months ago.
 
+## How to PowerMock
 
+I'll not go into details here as most of the things were already covered by Mockito section. 
+
+```java
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(Static.class)
+
+PowerMockito.mockStatic(Static.class);
+
+Mockito.when(Static.firstStaticMethod(param)).thenReturn(value);
+```
+
+### Maven Dependency 
+
+Check the latest on https://github.com/powermock/powermock/wiki/Mockito-Maven
+
+```xml
+<properties>
+<powermock.version>2.0.2</powermock.version>
+</properties>
+<dependencies>
+<dependency>
+  <groupId>org.powermock</groupId>
+  <artifactId>powermock-module-junit4</artifactId>
+  <version>${powermock.version}</version>
+  <scope>test</scope>
+</dependency>
+<dependency>
+  <groupId>org.powermock</groupId>
+  <artifactId>powermock-api-mockito2</artifactId>
+  <version>${powermock.version}</version>
+  <scope>test</scope>
+</dependency>
+</dependencies>
+```
+# Code Coverage: JaCoCo
+
+Code coverage is a *software metric* that says how much of our code has been executed during our tests. The IntelliJ has a plugin, but also we have the JaCoCo maven plugin.   
+
+In IntelliJ, you can **Run with Coverage** plugin and the results look like this:
+
+![](C:\local\src\howtotest\intellij_codecovera.png "IntelliJ  Code Coverage")
+
+## JaCoCo
+
+For JaCoCo, you have to run the maven plugin like this.
+
+```
+mvn -Djacoco.skip=false test jacoco:report
+./target/site/jacoco/index.html
+```
+
+Because it's a simple to get metric and works, many projects (managers?) will require a minimum of Code Coverage to pass the tests Continuos Integration. 
+
+```xml
+<configuration>
+    <rules>
+        <rule>
+            <element>BUNDLE</element>
+            <limits>
+                <limit>
+                    <counter>INSTRUCTION</counter>
+                    <value>COVEREDRATIO</value>
+                    <minimum>0.10</minimum>
+                </limit>
+                <limit>
+                    <counter>BRANCH</counter>
+                    <value>COVEREDRATIO</value>
+                    <minimum>0.10</minimum>
+                </limit>
+                <limit>
+                    <counter>CLASS</counter>
+                    <value>MISSEDCOUNT</value>
+                    <maximum>99</maximum>
+                </limit>
+            </limits>
+        </rule>
+    </rules>
+</configuration>
+```
+
+Jacoco home page : https://www.jacoco.org/jacoco/trunk/index.html
 
 
 # Integration tests
@@ -446,8 +638,43 @@ That's for theory. In practice, the difference is the plugin Maven uses to run t
 
 By default, the **Maven Surefire Plugin** executes unit tests during the test phase, while the **Failsafe* plugin runs integration tests in the integration-test phase. [Taken from here](https://www.baeldung.com/maven-integration-test#failsafe)
 
-> The **Failsafe Plugin** is designed to run _integration_ tests while the **Surefire Plugin** is designed to run unit tests. [Reference](https://maven.apache.org/surefire/maven-failsafe-plugin/)
+The **Failsafe Plugin** is designed to run _integration_ tests while the **Surefire Plugin** is designed to run unit tests. [Reference](https://maven.apache.org/surefire/maven-failsafe-plugin/)
 
+> ## The limit between Unit and Integration is defined by which plugin runs them. 
+
+## What are integration test and how does failsafe execute them?
+
+Look at the following plugin configuration:
+
+```xml
+  <plugins>
+    ...
+    <plugin>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-maven-plugin</artifactId>
+      <version>2.0.2.RELEASE</version>
+      <executions>
+        <execution>
+          <id>pre-integration-test</id>
+          <goals>
+            <goal>start</goal>
+          </goals>
+        </execution>
+        <execution>
+          <id>post-integration-test</id>
+          <goals>
+            <goal>stop</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+    ...
+  </plugins>
+```
+
+Before every Integration test start, the Failsafe plugin will start the SpringBoot application and when they finish the SpringBoot server will stop. 
+
+When on Unit tests, only the SpingContainer could (or not) be started. 
 
 Based on https://maven.apache.org/surefire/maven-failsafe-plugin/integration-test-mojo.html#includes, only the below file patterns will be considered for integration test.
 
@@ -460,7 +687,28 @@ Based on https://maven.apache.org/surefire/maven-failsafe-plugin/integration-tes
 ```
 If you want to change this minimal integration testing support, please refer to https://stackoverflow.com/a/38398474
 
-You'll talk about Integration Tests later.
+
+
+# Spring & SpringBoot
+
+The Spring topic is huge, so I'll focus on the main things. 
+
+https://docs.spring.io/spring-framework/reference/testing/introduction.html
+
+## The basics
+
+- Use the `@ExtendWith(SpringExtension.class)` to run Spring apps that create the SpringContext
+- The `@RunWith(SpringRunner.class)` is for JUnit4. It should be replace in favor of `@ExtendWith(SpringExtension.class)`
+- 
+
+
+## Annotations
+
+You can see some Generic Spring 
+
+- @ContextConfiguration: Let you change config (aka SpringConfig file) for your tests. Set at class level. 
+- @ActiveProfiles: Spring profiles.
+- @TestPropertySource: Allows you to set a specific `.properties` for your test. Set at class level.
 
 
 
@@ -468,18 +716,32 @@ You'll talk about Integration Tests later.
 
 
 
-----
 
-# SpringTest
+# Continuous Integration
 
+The key to all this reference is to automate the tests from the very simple to the more complex. 
 
+Automating tests will reduce the risk of delivering bad code and will improve the quality of our deliverables. 
 
+## Trade offs
 
+Creating test is time consumer and if project is on a tight schedule, it could be reduced and impact quality. That' a decision beyond our programming scope.
 
-# JaCoCo
+## Squaretest 
 
+Browsing some IntelliJ, I've seen the https://squaretest.com/ and looks promising. 
 
+> Automatically generate unit tests for your Java classes with the Squaretest plugin for IntelliJ IDEA.
+
+I have not tried, but if someone did, let me know. And it's not pricey.   
+    
 --- 
 # References
 
 https://methodpoet.com/unit-testing-best-practices/
+
+To convert MD to DOCx: 
+https://cloudconvert.com/md-to-docx
+
+
+To review and get some ideas from : https://www.globallogic.com/ua/about/events/java-community-webinar-2/
