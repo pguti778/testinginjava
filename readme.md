@@ -130,7 +130,7 @@ Pay attention to the `**` at the beginning: it means that `*Test` classes can be
 
 ## Maven test: Surefire Plugin: The importance 
 
-Having the Surefire plugin being executes every time on the Maven life cycle is very important for ***Continuos Integration*** : if a test fails, something is wrong with the code produced and it must not be pushed into a productive release. Really the main idea behind the continues is this: to run automated tests with the latest code and if something is failing, flag it.  
+Having the Surefire plugin being executes every time on the Maven life cycle is very important for ***Continuos Integration*** : if a test fails, something is wrong with the code produced and it must not be pushed into a productive release. Really the main idea behind the Continuos Integration is exactly this: to run automated tests with the latest code and if something is failing, flag it.  
 
 ## Writing tests
 
@@ -218,6 +218,24 @@ Method naming is a subject on its own, I've found this article interesting https
 
 > For a reference on JUnit5 annotations you can look [here](https://junit.org/junit5/docs/current/user-guide/#writing-tests-annotations)
 
+##  Arrange/Act/Assert vs GWT: Given/When/Then
+
+They both have the same principle: to prepare conditions, to execute the code and to evaluate the results. The first is commonly used for Unit testing and TDD, and the later is more frequent in Behavior Driven Development (BDD) context.
+
+# A word on Processes & Paradigms
+
+Although, these topics are not part of the scope of this article, let's take a "sentence explanatory" approach.
+
+##  Test Driven Development (TDD)
+
+TDD is a software process that instead of start by write code based on a requirement, you start writing test cases. So, the code produced should make pass all the tests. This is an approach or a process instead of a tool on its own.
+
+##  Behavior Driven Development (BDD)
+
+It's uses the Given-When-Then principle to describe User Stories or Scenarios at high level. BDD more thought for Use Cases and higher level definitions for test cases. It is kind of thought for Product Owner and Business users. It has its own language and it not specific for Java.
+
+> They are not mutually exclusive.
+
 ## How is the test executed ??
 
 You can run your tests directly from your IDE. But inside the Maven lifecycle, the Surefire plugin is triggered by the `test` goal, and it will execute all the tests as described in the section [Maven test: Surefire Plugin](#surefire)
@@ -242,20 +260,20 @@ And here some I've found interesting:
 - @Tag: to filter test execution like in `mvn -Dgroups="integration, fast, feature-168"`  or `mvn -DexcludedGroups="slow"` (taken from https://mkyong.com/junit5/junit-5-tagging-and-filtering-tag-examples/)
 - @ParameterizedTest, @RepeatedTest, @Timeout
 
-### Junit 4 vs 5: Annotations
+### JUnit 4 vs 5: Annotations
 
 Yes, they've changed the annotations names. Here the cheatsheet:
 
-| JUnit4 | Junit5 |
-|--------|--------|
+| JUnit4 | JUnit5      |
+|--------|-------------|
 | @RunWith | @ExtendWith |
 | @Before | @BeforeEach |
-| @After | @AfterEach |
-| @BeforeClass | @BeforeAll |
-| @AfterClass | @AfterAll |
-| @Ignore | @Disabled |
-| @Category | @Tag   |
-| @Rule<br/>@ClassRule | 😵     |
+| @After | @AfterEach  |
+| @BeforeClass | @BeforeAll  |
+| @AfterClass | @AfterAll   |
+| @Ignore | @Disabled   |
+| @Category | @Tag        |
+| @Rule<br/>@ClassRule | 😵          |
 
 ### Junit 5 new Annotations
 
@@ -283,7 +301,7 @@ public void testException() {
 
 # Mockito (jMock, EasyMock)
 
-As explained before (and also in my previous Webinar), Unit testing should be executed in the most ***isolation*** possible. How do I test my code in isolation if my code has dependencies with other services/classes/objects/external entities ?? 
+As explained before (and also in the previous Webinar), Unit testing should be executed in the most ***isolation*** possible. How do I test my code in isolation if my code has dependencies with other services/classes/objects/external entities ?? 
 
 That's where Mocking comes into picture: create facade objects and provide them the behavior we want for our test. So, there are leveraging libraries and frameworks that run over JUnit that let us mimic the responses we want for our tests. Mockito, jMock and EasyMock are the most used.
 
@@ -308,6 +326,8 @@ public class ManglingService {
 
   static final String SALT = "SALTKEY";
 
+  static final String DEFAULT = "DEFAULT";
+
   // Injected bean
   RemoteMD5Client remoteMD5Client;
 
@@ -315,10 +335,9 @@ public class ManglingService {
     if(value != null && !("".equals(value))) {
       return remoteMD5Client.md5sum(value + SALT);
     } else {
-      return remoteMD5Client.md5sum(value);
+      return remoteMD5Client.md5sum(DEFAULT );
     }
   }
-
 }
 ```
 
@@ -327,11 +346,6 @@ The `RemoteMD5Client` is the dependency we want to mock. So the code will be lik
 ```java
 @ExtendWith(MockitoExtension.class)
 class ManglingServiceTest {
-
-// Initialize mock - The old way
-//  public ManglingServiceTest() {
-//    MockitoAnnotations.openMocks(this);
-//  }
 
   @Test
   @DisplayName("Testing and mocking a service")
@@ -349,7 +363,7 @@ class ManglingServiceTest {
     String result = manglingService.saltedMD5("simple");
 
     // Evaluate the result : Assert - Then
-    assertEquals("empty" + ManglingService.SALT, result);
+    assertEquals("empty" + ManglingService.SALT, result);   /// *** F
   }
 }
 ```
@@ -357,25 +371,9 @@ class ManglingServiceTest {
 Some notes of the code above:
 
 - `@ExtendWith` is a way to tell JUnit5 what other extension should it use. In this case, only `Mockito`
-- our service to test is not an instance variable, but a local to the method. 
+- Our service to test is not an instance variable, but a local to the method.
+- The test above will fail. Spot the error and you get 1 TYP. 
 
-##  Arrange/Act/Assert vs GWT: Given/When/Then
-
-They both have the same principle: to prepare conditions, to execute the code and to evaluate the results. The first is commonly used for Unit testing and TDD, and the later is more frequent in Behavior Driven Development (BDD) context. 
-
-# A word on Processes & Paradigms
-
-Although, these topics are not part of the scope of this article, let's take a "sentence explanatory" approach.
-
-##  Test Driven Development (TDD)
-
-TDD is a software process that instead of start by write code based on a requirement, you start writing test cases. So, the code produced should make pass all the tests. This is an approach or a process instead of a tool on its own. 
-
-##  Behavior Driven Development (BDD)
-
-It's uses the Given-When-Then principle to describe User Stories or Scenarios at high level. BDD more thought for Use Cases and higher level definitions for test cases. It is kind of thought for Product Owner and Business users. It has its own language and it not specific for Java. 
-
-> They are not mutually exclusive.
 
 # Mock vs Spy
 
@@ -396,7 +394,7 @@ public void testEncryptSimple() {
     Mockito.when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
 
     // call the real method
-    Mockito.when(remoteMD5Client.md5sum("complex")).thenCallRealMethod();
+    Mockito.when(remoteMD5Client.md5sum("notsimple")).thenCallRealMethod();
 
     // Real service we want to test
     ManglingService manglingService = new ManglingService(remoteMD5Client);
@@ -415,9 +413,9 @@ This previous code will fail, because the mock will only give response based on 
 
 Some notes of the code above:
 - The `@Mock` annotation will create an instance mock variable.
-- If return is not configured for the method we want to execute, it will return `null`. 
 - Mock will never invoke the real method. You have to explicitly define it to `thenCallRealMethod`
-- With the code above, you'll get a `Strict stubbing argument mismatch.`, meaning that you have to define the cases. The code should be 
+- With the code above, you'll get a `Strict stubbing argument mismatch.`, meaning that you have to define the cases.  
+- To return `null` instead of the error, the code should be:
 ```java 
     lenient().when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
 ``` 
@@ -481,9 +479,7 @@ In order not to have to call constructor manually for the class we want to test,
     }
 ```
 
-No need to have a Dependency Injection engine running beneth our code: Mockito will do for us. 
-
-## Mocking Statics
+## Mocking `static` methods
 
 Static method are controversial, but they are there and they exist. Again, Java is 20+ years old and many hands has written code on it. So we will find several situations like this.
 
@@ -579,7 +575,7 @@ Check the latest on https://github.com/powermock/powermock/wiki/Mockito-Maven
 </dependency>
 </dependencies>
 ```
-# Code Coverage: JaCoCo
+# Code Coverage
 
 Code coverage is a *software metric* that says how much of our code has been executed during our tests. The IntelliJ has a plugin, but also we have the JaCoCo maven plugin.   
 
@@ -632,15 +628,12 @@ Jacoco home page : https://www.jacoco.org/jacoco/trunk/index.html
 
 As explain in my `Software testing` webinar, Unit Testing is used when **Testing in isolation**, whilst Integration Testing is to test one or more things.
 
-The *Isolation* part is not physical: you can think as it as method, a class, a service. To me, it's when the code you're testing is ***not*** interacting with anything outside it.
+The *Isolation* part is not physical: you can think as it as method, a class, a service, multiple units. To me, it's when the code you're testing is ***not*** interacting with anything outside it.  That's for theory. 
 
-That's for theory. In practice, the difference is the plugin Maven uses to run them and the behavior they have.
-
-By default, the **Maven Surefire Plugin** executes unit tests during the test phase, while the **Failsafe* plugin runs integration tests in the integration-test phase. [Taken from here](https://www.baeldung.com/maven-integration-test#failsafe)
+In practice, Maven uses 2 different plugins to run them and the behavior they have is different.  By default, the **Maven Surefire Plugin** executes unit tests during the test phase, while the **Failsafe* plugin runs integration tests in the integration-test phase. [Taken from here](https://www.baeldung.com/maven-integration-test#failsafe)
 
 The **Failsafe Plugin** is designed to run _integration_ tests while the **Surefire Plugin** is designed to run unit tests. [Reference](https://maven.apache.org/surefire/maven-failsafe-plugin/)
 
-> ## The limit between Unit and Integration is defined by which plugin runs them. 
 
 ## What are integration test and how does failsafe execute them?
 
@@ -674,7 +667,7 @@ Look at the following plugin configuration:
 
 Before every Integration test start, the Failsafe plugin will start the SpringBoot application and when they finish the SpringBoot server will stop. 
 
-When on Unit tests, only the SpingContainer could (or not) be started. 
+When on Unit tests, only the SpringContainer could (or not) be started. 
 
 Based on https://maven.apache.org/surefire/maven-failsafe-plugin/integration-test-mojo.html#includes, only the below file patterns will be considered for integration test.
 
@@ -685,34 +678,100 @@ Based on https://maven.apache.org/surefire/maven-failsafe-plugin/integration-tes
     <include>**/*ITCase.java</include>
 </includes>
 ```
-If you want to change this minimal integration testing support, please refer to https://stackoverflow.com/a/38398474
 
-
+To change this integration testing support, please refer to https://stackoverflow.com/a/38398474.
 
 # Spring & SpringBoot
 
-The Spring topic is huge, so I'll focus on the main things. 
-
 https://docs.spring.io/spring-framework/reference/testing/introduction.html
+
 
 ## The basics
 
 - Use the `@ExtendWith(SpringExtension.class)` to run Spring apps that create the SpringContext
-- The `@RunWith(SpringRunner.class)` is for JUnit4. It should be replace in favor of `@ExtendWith(SpringExtension.class)`
-- 
+  - The `@RunWith(SpringRunner.class)` is for JUnit4. It should be replaced in favor of `@ExtendWith(SpringExtension.class)`
+- `@SpringJUnitConfig` : is a composed [annotation](https://docs.spring.io/spring-framework/reference/testing/annotations/integration-junit-jupiter.html#integration-testing-annotations-junit-jupiter-springjunitconfig) that combines `@ExtendWith(SpringExtension.class)` from JUnit Jupiter with `@ContextConfiguration` 
+- `@SpringBootTest` : we will see below. 
 
+# SpringBoot tests
+
+SpringBoot tests are a kind of integration tests, because they initialize the ApplicationContext and the SpringBootApplication itself (not really executing the `main`). 
+
+## The starter
+
+As per [SpringBoot testing documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing), *"Most developers use the spring-boot-starter-test “Starter”, which imports both Spring Boot test modules as well as JUnit Jupiter, AssertJ, Hamcrest, and a number of other useful libraries."*
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-test</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+Details from https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.test-scope-dependencies
+
+- JUnit 5: The de-facto standard for unit testing Java applications.
+- Spring Test & Spring Boot Test: Utilities and integration test support for Spring Boot applications.
+- Mockito: A Java mocking framework.
+- ###  JSONassert: An assertion library for JSON.
+```java
+String result = "{id:1,name:\"Juergen\"}";
+JSONAssert.assertEquals("{id:1}", result, false); // Pass
+JSONAssert.assertEquals("{id:1}", result, true); // Fail
+```
+- ### JsonPath: XPath for JSON.
+```java
+String author = JsonPath.parse(json).read("$.store.book[0].author");
+Book book = JsonPath.parse(json).read("$.store.book[0]", Book.class);
+```
+- [AssertJ](https://assertj.github.io/doc/) A fluent assertion library.
+- Hamcrest: A library of matcher objects (also known as constraints or predicates).
 
 ## Annotations
 
-You can see some Generic Spring 
+- `@MockBean` 
+- `@SpyBean`
 
-- @ContextConfiguration: Let you change config (aka SpringConfig file) for your tests. Set at class level. 
-- @ActiveProfiles: Spring profiles.
-- @TestPropertySource: Allows you to set a specific `.properties` for your test. Set at class level.
+TODO: Write Example
+
+## `@SpringBootTest` Annotation
+
+*"Spring Boot provides the @SpringBootTest annotation which we can use to create an application context containing all the objects we need for all of the above test types. Note, however, that overusing @SpringBootTest might lead to very long-running test suites."* ([taken from here](https://reflectoring.io/spring-boot-test/))
+
+*"Spring Boot’s auto-configuration system works well for applications but can sometimes be a little too much for tests. It often helps to load only the parts of the configuration that are required to test a “slice” of your application. For example, you might want to test that Spring MVC controllers are mapping URLs correctly, and you do not want to involve database calls in those tests"*
+([takten from here](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.spring-boot-applications.autoconfigured-tests))
+
+TODO: Write Example
+
+## Spring "Slices" or reduced application scopes
+
+So Spring has provided a set of reduced "slices" Autoconfigured environments with the **Autoconfigurations** https://docs.spring.io/spring-boot/docs/current/reference/html/test-auto-configuration.html. The main ones are:
+
+- `@WebMvcTest`: Limits to Spring MVC related components. [Details](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.spring-boot-applications.spring-mvc-tests)
+- `@DataJpaTest`: To test JPA functionality. Scans for `@Entity`s
+- `@Data*Test`: To test database specific Templates, like Cassandra, MongoDB, Redis, etc
+
+> Each of the `@...Test` annotation include one or more `@...AutoConfiguration`
+
+TODO: Write Example of @ebMvcTest and @DataJpaTest
+
+See example from https://www.baeldung.com/spring-boot-testing
 
 
+### Test Slices
+
+https://tanzu.vmware.com/developer/guides/spring-boot-testing/
+
+https://www.baeldung.com/spring-boot-testing
+https://www.baeldung.com/spring-boot-testing-pitfalls#3-test-slices
+https://reflectoring.io/spring-boot-test/
 
 
+Reference:  https://docs.spring.io/spring-boot/docs/current/reference/html/test-auto-configuration.html
+
+
+## First Principle
+https://www.appsdeveloperblog.com/the-first-principle-in-unit-testing/
 
 
 

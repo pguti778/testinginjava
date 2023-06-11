@@ -10,6 +10,8 @@ public class ManglingService {
 
   static final String SALT = "SALTKEY";
 
+  static final String DEFAULT = "DEFAULT";
+
   // Injected bean
   RemoteMD5Client remoteMD5Client;
 
@@ -17,8 +19,7 @@ public class ManglingService {
     if(value != null && !("".equals(value))) {
       return remoteMD5Client.md5sum(value + SALT);
     } else {
-      return remoteMD5Client.md5sum("DEFAULT"  + SALT );
+      return remoteMD5Client.md5sum(DEFAULT );
     }
   }
-
 }
