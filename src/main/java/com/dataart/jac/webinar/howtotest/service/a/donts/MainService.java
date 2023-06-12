@@ -1,4 +1,4 @@
-package com.dataart.jac.webinar.howtotest.service.donts;
+package com.dataart.jac.webinar.howtotest.service.a.donts;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

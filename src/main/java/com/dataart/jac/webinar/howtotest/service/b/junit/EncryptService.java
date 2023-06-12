@@ -1,5 +1,8 @@
-package com.dataart.jac.webinar.howtotest.service;
+package com.dataart.jac.webinar.howtotest.service.b.junit;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class EncryptService {
 
   final static String KEY = "SECRET";

@@ -1,4 +1,4 @@
-package com.dataart.jac.webinar.howtotest;
+package com.dataart.jac.webinar.howtotest.service.b.junit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

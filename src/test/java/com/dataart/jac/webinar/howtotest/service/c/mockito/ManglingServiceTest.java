@@ -1,22 +1,22 @@
-package com.dataart.jac.webinar.howtotest.service;
+package com.dataart.jac.webinar.howtotest.service.c.mockito;
 
+import static com.dataart.jac.webinar.howtotest.service.c.mockito.ManglingService.SALT;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 
 import com.dataart.jac.webinar.howtotest.gateway.RemoteMD5Client;
 import java.util.Objects;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 @ExtendWith(MockitoExtension.class)
 class ManglingServiceTest {
@@ -28,71 +28,47 @@ class ManglingServiceTest {
   @Mock
   RemoteMD5Client remoteMD5ClientInstance;
 
-  @InjectMocks
-  ManglingService manglingServiceMockInjected;
-
   @Test
   @DisplayName("Testing and mocking a service")
-  public void testEncryptSimple() {
+  //f@Disabled
+  public void should_returnCapitals_when_sentSimple() {
     // Mock instance
-    RemoteMD5Client remoteMD5Client = Mockito.mock(RemoteMD5Client.class);
+    //RemoteMD5Client remoteMD5Client = Mockito.mock(RemoteMD5Client.class);
 
     // Conditions -> Arrange - Given
-    lenient().when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
+    lenient().when(remoteMD5ClientInstance.md5sum("simple")).thenReturn("empty");
 
     // call the real method
     //Mockito.when(remoteMD5Client.md5sum("complex")).thenCallRealMethod();
+    //Mockito.when(remoteMD5Client.md5sum(any())).thenCallRealMethod();
 
     // Real service we want to test
-    ManglingService manglingService = new ManglingService(remoteMD5Client);
+    ManglingService manglingService = new ManglingService(remoteMD5ClientInstance);
 
     // The actual Execution ->  Act - When
     String result = manglingService.saltedMD5("simple");
 
     // Evaluate the result : Then - Assert
-    assertEquals("SIMPLE" + ManglingService.SALT, result);
+    assertNotEquals("SIMPLE" + SALT, result);
   }
 
   @Spy
-  RemoteMD5Client remoteMD5Client;
+  RemoteMD5Client remoteMD5ClientSpied;
 
   @Test
   @DisplayName("Testing and mocking a service")
-  public void testEncryptSpy() {
+  public void givenMd5SumMocked_WhenSaltMD5_ThenEmptyReturned() {
     // Conditions -> Arrange - Given
-    Mockito.when(remoteMD5Client.md5sum("simple")).thenReturn("empty");
+    Mockito.when(remoteMD5ClientSpied.md5sum("simple" + SALT)).thenReturn("empty");
 
     // Real service we want to test
-    ManglingService manglingService = new ManglingService(remoteMD5Client);
+    ManglingService manglingService = new ManglingService(remoteMD5ClientSpied);
 
     // The actual Execution ->  Act - When
     String result = manglingService.saltedMD5("simple");
 
     // Evaluate the result : Then - Assert
-    assertEquals("SIMPLE" + ManglingService.SALT, result);
-  }
-
-  @Test
-  @DisplayName("Test Mocked objects")
-  public void testMockedInjectedObject() {
-    // Conditions -> Arrange - Given
-    Mockito.when(this.remoteMD5Client.md5sum("simple" + ManglingService.SALT)).thenReturn("empty");
-
-    // The actual Execution ->  Act - When
-    String result = this.manglingServiceMockInjected.saltedMD5("simple");
-
-    // Evaluate the result : Then - Assert
     assertEquals("empty", result);
-  }
-
-  @Test
-  @DisplayName("Test Exception")
-  public void testException() {
-    Exception exception = assertThrows(Exception.class, () -> { Objects.requireNonNull(null); } );
-    //exception.printStackTrace();
-    System.out.println(exception.getMessage());
-    assertNotNull(exception);
-
   }
 
 

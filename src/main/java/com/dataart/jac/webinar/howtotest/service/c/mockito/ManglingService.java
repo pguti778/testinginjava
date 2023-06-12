@@ -1,4 +1,4 @@
-package com.dataart.jac.webinar.howtotest.service;
+package com.dataart.jac.webinar.howtotest.service.c.mockito;
 
 import com.dataart.jac.webinar.howtotest.gateway.RemoteMD5Client;
 import lombok.AllArgsConstructor;
@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class ManglingService {
 
-  static final String SALT = "SALTKEY";
+  public static final String SALT = "SALTKEY";
 
   static final String DEFAULT = "DEFAULT";
 

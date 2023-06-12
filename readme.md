@@ -128,9 +128,9 @@ Pay attention to the `**` at the beginning: it means that `*Test` classes can be
 
 > ### Don't put Testing code inside your main sources. 😵
 
-## Maven test: Surefire Plugin: The importance 
+## The importance: Continuous Integration 
 
-Having the Surefire plugin being executes every time on the Maven life cycle is very important for ***Continuos Integration*** : if a test fails, something is wrong with the code produced and it must not be pushed into a productive release. Really the main idea behind the Continuos Integration is exactly this: to run automated tests with the latest code and if something is failing, flag it.  
+Having the Surefire plugin being executes every time on the Maven life cycle is very important for ***Continuous Integration*** : if a test fails, something is wrong with the code produced then it must **not** be published into a productive release. Really the main idea behind the Continuous Integration is exactly this: to run automated tests with the latest code and if something is failing, flag it.  
 
 ## Writing tests
 
@@ -236,6 +236,22 @@ It's uses the Given-When-Then principle to describe User Stories or Scenarios at
 
 > They are not mutually exclusive.
 
+### Cucumber
+
+Taken from [10 minutes Cucumber guide](https://cucumber.io/docs/guides/10-minute-tutorial/?lang=java)
+
+Create an empty file called src/test/resources/hellocucumber/is_it_friday_yet.feature with the following content:
+
+```
+Feature: Is it Friday yet?
+  Everybody wants to know when it's Friday
+
+  Scenario: Sunday isn't Friday
+    Given today is Sunday
+    When I ask whether it's Friday yet
+    Then I should be told "Nope"
+```
+
 ## How is the test executed ??
 
 You can run your tests directly from your IDE. But inside the Maven lifecycle, the Surefire plugin is triggered by the `test` goal, and it will execute all the tests as described in the section [Maven test: Surefire Plugin](#surefire)
@@ -251,14 +267,14 @@ https://junit.org/junit5/docs/current/api/org.junit.jupiter.api/org/junit/jupite
 
 These are some everyday used in Junit:
 
-- @Test: Main testing annotation
-- @DisplayName: descriptive test 
-- @BeforeAll, BeforeEach, AfterAll, AfterEach: method to be execute before or after each or all
-- @Disable: Force to disable a test
+- `@Test`: Main testing annotation
+- `@DisplayName`: descriptive test 
+- `@BeforeAll, BeforeEach, AfterAll, AfterEach`: method to be execute before or after each or all
+- `@Disable`: Force to disable a test
 
 And here some I've found interesting: 
-- @Tag: to filter test execution like in `mvn -Dgroups="integration, fast, feature-168"`  or `mvn -DexcludedGroups="slow"` (taken from https://mkyong.com/junit5/junit-5-tagging-and-filtering-tag-examples/)
-- @ParameterizedTest, @RepeatedTest, @Timeout
+- `@Tag`: to filter test execution like in `mvn -Dgroups="integration, fast, feature-168"`  or `mvn -DexcludedGroups="slow"` (taken from https://mkyong.com/junit5/junit-5-tagging-and-filtering-tag-examples/)
+- `@ParameterizedTest, @RepeatedTest, @Timeout`
 
 ### JUnit 4 vs 5: Annotations
 
@@ -274,6 +290,12 @@ Yes, they've changed the annotations names. Here the cheatsheet:
 | @Ignore | @Disabled   |
 | @Category | @Tag        |
 | @Rule<br/>@ClassRule | 😵          |
+
+#### BeforeAll & AfterAll side note. 
+
+The `@BeforeAll` and `@AfterAll` should be static methods.  This is in favor of stateless test classes, as described in the https://junit.org/junit5/docs/current/user-guide/#writing-tests-test-instance-lifecycle.
+
+But if you can group some tests with the same test instance, you can use the `@TestInstance(Lifecycle.PER_CLASS)` class level annotation to reuse some setup. But this has to me explicitly done. 
 
 ### Junit 5 new Annotations
 
@@ -298,6 +320,7 @@ public void testException() {
     }
 ```
 
+---
 
 # Mockito (jMock, EasyMock)
 
@@ -375,7 +398,7 @@ Some notes of the code above:
 - The test above will fail. Spot the error and you get 1 TYP. 
 
 
-# Mock vs Spy
+## Mock vs Spy
 
 A mock object is a full fake object that you have to define all its behaviors. If in our case:
 
@@ -395,6 +418,7 @@ public void testEncryptSimple() {
 
     // call the real method
     Mockito.when(remoteMD5Client.md5sum("notsimple")).thenCallRealMethod();
+    Mockito.when(remoteMD5Client.md5sum(any())).thenCallRealMethod();
 
     // Real service we want to test
     ManglingService manglingService = new ManglingService(remoteMD5Client);
@@ -407,7 +431,7 @@ public void testEncryptSimple() {
 }
 ```
  
-This previous code will fail, because the mock will only give response based on the **Arrange** section we have set. And, we have set for `simple`, but we test for `complex`.
+This previous code will fail, because the mock will only give response based on the **Arrange** section we have set. And, we have set for `simple`, but we test for `complex`. (*)
 
 > ## Make sure you test your tests 🪲🔫
 
@@ -527,6 +551,20 @@ class CommonUtilsTest {
 }
 ```
 
+## Some code common references
+
+```java
+// To Throw an Exception    
+Mockito.when(remoteMD5Client.md5sum(isNull())).thenThrow(new IllegalStateException(""));
+
+// To answer with the params passed
+Mockito.when(remoteMD5Client.md5sum(anyString())).thenAnswer(invocation ->
+        invocation.getArgument(0, String.class).toUpperCase());
+
+// To assert on exceptions
+assertThrows(IllegalStateException.class, () -> manglingService.saltedMD5(null));
+```
+
 # PowerMock
 
 Taken from https://github.com/powermock/powermock 
@@ -536,10 +574,10 @@ Taken from https://github.com/powermock/powermock
 > *PowerMock uses a custom classloader and bytecode manipulation to enable mocking of static methods, constructors, final classes and methods, private methods, removal of static initializers and more.*
 
 
-## Some notes about PowerMock
+### Some notes about PowerMock
 > It's not a daily-maintained library. Be careful when using. Last commit was done 4 months ago.
 
-## How to PowerMock
+### How to PowerMock
 
 I'll not go into details here as most of the things were already covered by Mockito section. 
 
@@ -575,13 +613,14 @@ Check the latest on https://github.com/powermock/powermock/wiki/Mockito-Maven
 </dependency>
 </dependencies>
 ```
+
 # Code Coverage
 
 Code coverage is a *software metric* that says how much of our code has been executed during our tests. The IntelliJ has a plugin, but also we have the JaCoCo maven plugin.   
 
 In IntelliJ, you can **Run with Coverage** plugin and the results look like this:
 
-![](C:\local\src\howtotest\intellij_codecovera.png "IntelliJ  Code Coverage")
+![](intellij_codecovera.png "IntelliJ  Code Coverage")
 
 ## JaCoCo
 
@@ -623,53 +662,59 @@ Because it's a simple to get metric and works, many projects (managers?) will re
 
 Jacoco home page : https://www.jacoco.org/jacoco/trunk/index.html
 
+---
 
 # Integration tests
 
 As explain in my `Software testing` webinar, Unit Testing is used when **Testing in isolation**, whilst Integration Testing is to test one or more things.
 
-The *Isolation* part is not physical: you can think as it as method, a class, a service, multiple units. To me, it's when the code you're testing is ***not*** interacting with anything outside it.  That's for theory. 
+The *isolation* part is not physical: you can think as it as method, a class, a service, multiple units. To me, it's when the code you're testing is ***not*** interacting with anything outside it. 
 
 In practice, Maven uses 2 different plugins to run them and the behavior they have is different.  By default, the **Maven Surefire Plugin** executes unit tests during the test phase, while the **Failsafe* plugin runs integration tests in the integration-test phase. [Taken from here](https://www.baeldung.com/maven-integration-test#failsafe)
 
-The **Failsafe Plugin** is designed to run _integration_ tests while the **Surefire Plugin** is designed to run unit tests. [Reference](https://maven.apache.org/surefire/maven-failsafe-plugin/)
+The **Failsafe Plugin** does not fail the build immediately, but executes one final phase, the *post-integration-test* to tear down and clean up your test execution, like stop a server, clean SQL DB, or remove files. 
 
+Run below to execute only Unit Tests (*Test)
 
-## What are integration test and how does failsafe execute them?
+`mvn clean test` 
 
-Look at the following plugin configuration:
+You can execute below command to run the tests (both unit and integration *IT) 
+
+`mvn clean verify`
+
+## SpringBoot and Integration Tests
+
+To make sure that the lifecycle of your Spring Boot application is properly managed around your integration tests, you can use the start and stop goals, as shown in the following example:
 
 ```xml
-  <plugins>
-    ...
-    <plugin>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-maven-plugin</artifactId>
-      <version>2.0.2.RELEASE</version>
-      <executions>
-        <execution>
-          <id>pre-integration-test</id>
-          <goals>
-            <goal>start</goal>
-          </goals>
-        </execution>
-        <execution>
-          <id>post-integration-test</id>
-          <goals>
-            <goal>stop</goal>
-          </goals>
-        </execution>
-      </executions>
-    </plugin>
-    ...
-  </plugins>
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>pre-integration-test</id>
+                    <goals>
+                        <goal>start</goal>
+                    </goals>
+                </execution>
+                <execution>
+                    <id>post-integration-test</id>
+                    <goals>
+                        <goal>stop</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+
 ```
 
-Before every Integration test start, the Failsafe plugin will start the SpringBoot application and when they finish the SpringBoot server will stop. 
+Taken from https://docs.spring.io/spring-boot/docs/2.5.x/maven-plugin/reference/htmlsingle/#integration-tests
 
-When on Unit tests, only the SpringContainer could (or not) be started. 
-
-Based on https://maven.apache.org/surefire/maven-failsafe-plugin/integration-test-mojo.html#includes, only the below file patterns will be considered for integration test.
+Same as with Surefire plugin, only the below file patterns will be considered for integration test.
 
 ```xml
 <includes>
@@ -679,19 +724,24 @@ Based on https://maven.apache.org/surefire/maven-failsafe-plugin/integration-tes
 </includes>
 ```
 
-To change this integration testing support, please refer to https://stackoverflow.com/a/38398474.
+Reference : https://maven.apache.org/surefire/maven-failsafe-plugin/examples/inclusion-exclusion.html
+
+### More References
+- https://stackoverflow.com/questions/1399240/how-do-i-get-my-maven-integration-tests-to-run/1399277
+- https://stackoverflow.com/questions/28986005/what-is-the-difference-between-the-maven-surefire-and-maven-failsafe-plugins
+- https://www.baeldung.com/maven-surefire-vs-failsafe
 
 # Spring & SpringBoot
 
 https://docs.spring.io/spring-framework/reference/testing/introduction.html
 
-
 ## The basics
 
-- Use the `@ExtendWith(SpringExtension.class)` to run Spring apps that create the SpringContext
+- Use the `@ExtendWith(SpringExtension.class)` to test Spring apps that create the SpringContext
   - The `@RunWith(SpringRunner.class)` is for JUnit4. It should be replaced in favor of `@ExtendWith(SpringExtension.class)`
 - `@SpringJUnitConfig` : is a composed [annotation](https://docs.spring.io/spring-framework/reference/testing/annotations/integration-junit-jupiter.html#integration-testing-annotations-junit-jupiter-springjunitconfig) that combines `@ExtendWith(SpringExtension.class)` from JUnit Jupiter with `@ContextConfiguration` 
-- `@SpringBootTest` : we will see below. 
+- `@SpringBootTest` : 
+
 
 # SpringBoot tests
 
@@ -699,7 +749,7 @@ SpringBoot tests are a kind of integration tests, because they initialize the Ap
 
 ## The starter
 
-As per [SpringBoot testing documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing), *"Most developers use the spring-boot-starter-test “Starter”, which imports both Spring Boot test modules as well as JUnit Jupiter, AssertJ, Hamcrest, and a number of other useful libraries."*
+As per [SpringBoot testing documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing), *"Most developers use the spring-boot-starter-test “Starter”, which imports both Spring Boot test modules as well as JUnit Jupiter, AssertJ, Hamcrest, and **a number of other useful libraries**."*
 
 ```xml
 <dependency>
@@ -729,10 +779,47 @@ Book book = JsonPath.parse(json).read("$.store.book[0]", Book.class);
 
 ## Annotations
 
-- `@MockBean` 
-- `@SpyBean`
+- `@MockBean`: Creates Mock bean into the application context and will be later injected into the objects that make use of it. The difference between `@InjectMocks` is that the MockBean can be shared between several objects.
+- `@SpyBean`: Same, but with "Spy"s.
 
-TODO: Write Example
+```java
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = ManglingService.class)
+@RequiredArgsConstructor
+@TestInstance(Lifecycle.PER_CLASS)
+class EncryptControllerBeanTest {
+
+  @Nullable
+  @MockBean
+  RemoteMD5Client remoteMD5ClientInstanceBean;
+
+  @Autowired
+  ManglingService manglingService;
+
+  @BeforeAll
+  void init() {
+    // Arrange
+    Mockito.when(remoteMD5ClientInstanceBean.md5sum(any())).thenReturn("SOMEVALUE");
+  }
+
+  @Test
+  public void simpleTest() {
+    // The actual Execution ->  Act - When
+    String result = manglingService.saltedMD5("simple");
+
+    // Evaluate the result : Then - Assert
+    assertNotEquals("SIMPLE" + SALT, result);
+
+  }
+}
+```
+
+Some notes on the code above:
+- I'm not using any SpringBoot specific feature, so I only `@ExtendWith(SpringExtension.class)`
+- I'm using another package structure and the `@ContextConfiguration(classes = ManglingService.class)` sets the ManglingService in the Application Context.
+- I use the `@TestInstance(Lifecycle.PER_CLASS)` to setup the conditions at instance level.
+- I have not configured the RemoteMD5Client.class on purpose: I'm setting a mock out of it. 
+- To use a `@Spy`, I should have add it to the `@ContextConfiguration`  
 
 ## `@SpringBootTest` Annotation
 
@@ -741,24 +828,98 @@ TODO: Write Example
 *"Spring Boot’s auto-configuration system works well for applications but can sometimes be a little too much for tests. It often helps to load only the parts of the configuration that are required to test a “slice” of your application. For example, you might want to test that Spring MVC controllers are mapping URLs correctly, and you do not want to involve database calls in those tests"*
 ([takten from here](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.spring-boot-applications.autoconfigured-tests))
 
-TODO: Write Example
+```java
+@SpringBootTest
+@AutoConfigureMockMvc
+class EncryptControllerTest {
+
+  @Autowired
+  private MockMvc mockMvc;
+
+  @Test
+  public void testSayHello() {
+    try {
+      this.mockMvc.perform(MockMvcRequestBuilders.get("/sayHello"))
+          .andExpect(MockMvcResultMatchers.status().isOk())
+          .andDo(MockMvcResultHandlers.print());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+  }
+
+  @Test
+  public void testDoATest() {
+    try {
+      this.mockMvc.perform(MockMvcRequestBuilders.get("/do-a-test"))
+          .andExpect(MockMvcResultMatchers.status().isOk())
+          .andDo(MockMvcResultHandlers.print());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+  }
+}
+```
+
+Some notes on the code above:
+- I needed to `@AutoConfigureMockMvc` in order to have the MockMvc for my tests
+- This loaded the whole SpringBoot context. In this case is needed because the `/sayHello` is a SpringCloud Function like 
+
+```java
+	@Bean
+	public Supplier<String> sayHello() {
+		return () -> "Hello";
+	}
+```
 
 ## Spring "Slices" or reduced application scopes
 
 So Spring has provided a set of reduced "slices" Autoconfigured environments with the **Autoconfigurations** https://docs.spring.io/spring-boot/docs/current/reference/html/test-auto-configuration.html. The main ones are:
 
-- `@WebMvcTest`: Limits to Spring MVC related components. [Details](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.spring-boot-applications.spring-mvc-tests)
+
+- `@WebMvcTest`: Limits to Spring MVC related components. [Details](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#features.testing.spring-boot-applications.spring-mvc-tests), specially the `@AutoConfigureMockMvc`
 - `@DataJpaTest`: To test JPA functionality. Scans for `@Entity`s
 - `@Data*Test`: To test database specific Templates, like Cassandra, MongoDB, Redis, etc
 
 > Each of the `@...Test` annotation include one or more `@...AutoConfiguration`
 
-TODO: Write Example of @ebMvcTest and @DataJpaTest
+```java
+@WebMvcTest
+class EncryptControllerIT {
+
+  @Autowired
+  private MockMvc mockMvc;
+
+  @Test
+  public void testSayHello() {
+    try {
+      // Spring Cloud Function is not created when using the WebMvcTest
+      this.mockMvc.perform(MockMvcRequestBuilders.get("/sayHello"))
+          .andExpect(MockMvcResultMatchers.status().is4xxClientError());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+  }
+
+  @Test
+  public void testDoATest() {
+    try {
+      this.mockMvc.perform(MockMvcRequestBuilders.get("/do-a-test"))
+          .andExpect(MockMvcResultMatchers.status().isOk())
+          .andDo(MockMvcResultHandlers.print());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+  }
+}
+```
 
 See example from https://www.baeldung.com/spring-boot-testing
 
-
-### Test Slices
+### More on Test Slices
 
 https://tanzu.vmware.com/developer/guides/spring-boot-testing/
 
@@ -766,21 +927,26 @@ https://www.baeldung.com/spring-boot-testing
 https://www.baeldung.com/spring-boot-testing-pitfalls#3-test-slices
 https://reflectoring.io/spring-boot-test/
 
-
 Reference:  https://docs.spring.io/spring-boot/docs/current/reference/html/test-auto-configuration.html
 
+## MockMvc vs WebTestClient vs TestRestTemplate
+
+Taken from https://rieckpil.de/spring-boot-testing-mockmvc-vs-webtestclient-vs-testresttemplate/:
+
+![](mockmvc-webtestclient-testrestremplate-comparison.png "IntelliJ  Code Coverage")
+
+- **MockMvc**: Fluent API to interact with a mocked servlet environment. No real HTTP communication. The perfect solution to verify blocking Spring WebMVC controller endpoints. We either bootstrap the MockMvc instance on our own, use @WebMvcTest or @SpringBootTest (without a port configuration). Includes API support for verifying the model or view name of a server-side rendered view endpoint.
+- **WebTestClient**: Originally the testing tool for invoking and verifying Spring WebFlux endpoints. However, we can also use it to write tests for a running servlet container or MockMvc. Fluent API that allows chaining the request and verification. There's no API support for verifying the model or view name of a server-side rendered view endpoint.
+- **TestRestTemplate**: Test and verify controller endpoints for a running servlet container over HTTP. Less fluent API. If our team is still familiar with the RestTemplate and hasn't made the transition to the WebTestClient (yet), we may favor this for our integration tests. We can't use the TestRestTemplate to interact with mocked servlet environment or Spring WebFlux endpoints. There's no API support for verifying the model or view name of a server-side rendered view endpoint.
+
+
+
+--- 
+
+# Final notes and references
 
 ## First Principle
 https://www.appsdeveloperblog.com/the-first-principle-in-unit-testing/
-
-
-
-
-# Continuous Integration
-
-The key to all this reference is to automate the tests from the very simple to the more complex. 
-
-Automating tests will reduce the risk of delivering bad code and will improve the quality of our deliverables. 
 
 ## Trade offs
 
