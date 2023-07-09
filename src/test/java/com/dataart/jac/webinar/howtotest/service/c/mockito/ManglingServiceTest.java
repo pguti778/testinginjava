@@ -72,6 +72,13 @@ class ManglingServiceTest {
   }
 
 
+  @Test
+  @DisplayName("Private method test")
+  public void testPrivateMethod() {
+
+  }
+
+
   public void testEncryptNull() {
     // Mock instance
     RemoteMD5Client remoteMD5Client = Mockito.mock(RemoteMD5Client.class);

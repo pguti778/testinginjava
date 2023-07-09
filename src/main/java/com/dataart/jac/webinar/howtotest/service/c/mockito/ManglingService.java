@@ -22,4 +22,8 @@ public class ManglingService {
       return remoteMD5Client.md5sum(DEFAULT );
     }
   }
+
+  private int restOne(int param) {
+    return param - 1;
+  }
 }

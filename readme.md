@@ -590,6 +590,49 @@ PowerMockito.mockStatic(Static.class);
 Mockito.when(Static.firstStaticMethod(param)).thenReturn(value);
 ```
 
+## Testing Private methods
+
+One question from previous Webinars is how to test Private. You can do that with PowerMock, but also spring has it Spring ReflectionTestUtils which has same functionality. We will cover Spring later in this article. 
+
+https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/test/util/ReflectionTestUtils.html
+
+```java
+@Component
+public class PrivateMethodService {
+
+    public boolean allApproved(List<Integer> grades) {
+        for(Integer grade : grades) {
+            if(evaluateApproved(grade))
+                return false;
+        }
+        return true;
+    }
+
+    private boolean evaluateApproved(final Integer grade) {
+        return grade > 70;
+    }
+
+
+}
+
+
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(classes = PrivateMethodService.class)
+class PrivateMethodServiceTest {
+
+  @Autowired
+  PrivateMethodService privateMethodService;
+
+  @Test
+  void testSomething() {
+    Boolean b = ReflectionTestUtils.invokeMethod(privateMethodService, "evaluateApproved", 50);
+    System.out.println(b);
+  }
+
+}
+
+```
+
 ### Maven Dependency 
 
 Check the latest on https://github.com/powermock/powermock/wiki/Mockito-Maven
@@ -966,7 +1009,7 @@ I have not tried, but if someone did, let me know. And it's not pricey.
 https://methodpoet.com/unit-testing-best-practices/
 
 To convert MD to DOCx: 
-https://cloudconvert.com/md-to-docx
+VSCode --> Markdown PDF plugin 
 
 
-To review and get some ideas from : https://www.globallogic.com/ua/about/events/java-community-webinar-2/
+----
